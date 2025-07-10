@@ -99,8 +99,13 @@ export const SignUpView = () => {
     return (
 
         <div className="flex flex-col gap-6 ">
+
+            {/* This is the Complete card , it has 2 sections , 1 is for signup and other is logo*/}
             <Card className="overflow-hidden p-0">
+
                 <CardContent className="grid p-0 md:grid-cols-2">
+
+                    {/* This is the Part 1 of Card for actual Sign up*/}
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 md:p-8 ">
                             <div className="flex flex-col gap-6">
@@ -263,8 +268,8 @@ export const SignUpView = () => {
                     </Form>
 
 
-                    {/* Below div is Meet AI logo */}
-                    <div className="bg-radial from-green-700 to-green-900 relative hidden md:flex flex-col gap-y-4 items-center justify-center">
+                    {/* This is the part 2 of the card with the logo  */}
+                    <div className="bg-radial from-sidebar-accent to-sidebar relative hidden md:flex flex-col gap-y-4 items-center justify-center">
                         <img src="/logo.svg" alt="Image" className="h-[92px] w-[92px]" />
                         <p className="text-2xl font-semibold text-white">
                             Meet.AI
@@ -278,6 +283,7 @@ export const SignUpView = () => {
             <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
                 By clicking continue ,  agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
             </div>
+            
         </div>
 
     )
