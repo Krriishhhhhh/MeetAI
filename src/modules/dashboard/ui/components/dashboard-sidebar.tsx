@@ -122,7 +122,7 @@ export const DashboardSidebar = () => {
 
 
             <SidebarFooter className="text-white">
-                <DashboardUserButton></DashboardUserButton>
+                <DashboardUserButton/>
             </SidebarFooter>
 
 
