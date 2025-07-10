@@ -11,9 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import {FaGithub , FaGoogle} from "react-icons/fa"
 
 //Schema of how Form inputs should be 
 const formSchema = z.object({
@@ -32,9 +33,10 @@ const formSchema = z.object({
 
 export const SignUpView = () => {
 
-    const router = useRouter();
+    
     const [error, setError] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
+    const router = useRouter();
 
     //Initialising the form using form schema and useform
     const form = useForm<z.infer<typeof formSchema>>({
@@ -56,11 +58,13 @@ export const SignUpView = () => {
             {
                 name: data.name,
                 email: data.email,
-                password: data.password
+                password: data.password,
+                callbackURL : "/"
             }, {
             onSuccess: () => {
                 setPending(false);
-                router.push("/")
+                router.push('/')
+                
             },
             onError: ({ error }) => {
                 setPending(false);
@@ -69,6 +73,28 @@ export const SignUpView = () => {
         }
         ) //either siggn in happens and we go to root route , or error occurs in which case we set our error 
     }
+
+    //Generic method to signin using socials 
+         const onSocials = async (provider : "google" | "github") => { 
+            setError(null);
+            setPending(true);
+    
+            authClient.signIn.social(
+                {
+                    provider : provider ,
+                    callbackURL : "/"
+                }, {
+                onSuccess: () => {
+                    setPending(false);
+                   
+                },
+                onError: ({ error }) => {
+                    setPending(false);
+                    setError(error.message)
+                }
+            }
+            ) 
+        }
 
     return (
 
@@ -202,21 +228,23 @@ export const SignUpView = () => {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <Button
+                                        onClick={() => onSocials("google")}
                                         disabled={pending}
                                         variant="outline"
                                         type="button"
                                         className="w-full"
                                     >
-                                        Google
+                                        <FaGoogle/>
                                     </Button>
 
                                     <Button
+                                        onClick={() => onSocials("github")}
                                         disabled={pending}
                                         variant="outline"
                                         type="button"
                                         className="w-full"
                                     >
-                                        GitHub
+                                    <FaGithub/>
                                     </Button>
                                 </div>
 
