@@ -11,9 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import {FaGithub , FaGoogle} from "react-icons/fa"
+
 
 
 const formSchema = z.object({
@@ -23,9 +25,10 @@ const formSchema = z.object({
 
 export const SignInView = () => {
 
-    const router = useRouter();
+    
     const [error, setError] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
+    const router = useRouter();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -43,11 +46,13 @@ export const SignInView = () => {
         authClient.signIn.email(
             {
                 email: data.email,
-                password: data.password
+                password: data.password,
+                callbackURL : "/"
             }, {
             onSuccess: () => {
                 setPending(false);
-                router.push("/")
+                router.push('/')
+                
             },
             onError: ({ error }) => {
                 setPending(false);
@@ -55,6 +60,28 @@ export const SignInView = () => {
             }
         }
         ) //either siggn in happens and we go to root route , or error occurs in which case we set our error 
+    }
+
+    //Generic method to signin using socials 
+     const onSocials = async (provider : "google" | "github") => { 
+        setError(null);
+        setPending(true);
+
+        authClient.signIn.social(
+            {
+                provider : provider,
+                callbackURL : "/" 
+            }, {
+            onSuccess: () => {
+                setPending(false);
+                
+            },
+            onError: ({ error }) => {
+                setPending(false);
+                setError(error.message)
+            }
+        }
+        ) 
     }
 
     return (
@@ -145,21 +172,24 @@ export const SignInView = () => {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <Button
-                                    disabled={pending}
+                                        onClick={() => onSocials("google")}
+                                        disabled={pending}
                                         variant="outline"
                                         type="button"
                                         className="w-full"
                                     >
-                                        Google
+                                        <FaGoogle/>
                                     </Button>
 
                                     <Button
-                                    disabled={pending}
+                                        disabled={pending}
+                                         onClick={() => onSocials("github")}
                                         variant="outline"
                                         type="button"
                                         className="w-full"
                                     >
-                                        GitHub
+                                        <FaGithub/>
+                                        
                                     </Button>
                                 </div>
                                 {/* Below div is for  going to signup page */}
