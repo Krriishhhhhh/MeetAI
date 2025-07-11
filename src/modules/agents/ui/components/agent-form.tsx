@@ -38,7 +38,7 @@ export const AgentForm = ({ onSuccess, onCancel, initialValues }: AgentFormProps
                 // This data might be outdated — please re-fetch it next time it’s needed.This is what happening here 
                 onSuccess: async () => {
                     await queryClient.invalidateQueries(
-                        trpc.agents.getMany.queryOptions()
+                        trpc.agents.getMany.queryOptions({})
                     )
 
                     // After Succesfully editing the agent , its data might be outdated and needs to be refetched 

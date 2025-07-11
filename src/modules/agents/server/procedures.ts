@@ -1,9 +1,11 @@
 import { db } from "@/db"
 import { agents } from "@/db/schema"
-import {  createTRPCRouter, protectedProcedure } from "@/trpc/init"
+import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { agentsInsertSchema } from "../schemas"
 import { z } from "zod"
-import { eq } from "drizzle-orm"
+import { and, count, desc, eq, ilike } from "drizzle-orm"
+import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from "@/constants"
+
 
 
 //Porcedure is like a end point
@@ -14,29 +16,89 @@ import { eq } from "drizzle-orm"
 export const agentsRouter = createTRPCRouter({
 
     //Procedure 1
-    //THis is for getting all the agents
-    getMany: protectedProcedure.query(async () => {
-        const data = await db
-            .select()
-            .from(agents)
+    //THis is for getting all the agents that the user created 
+    getMany: protectedProcedure
+        .input(z.object({
+            page: z.number().default(DEFAULT_PAGE),
+            pageSize: z.number().min(MIN_PAGE_SIZE).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
+            search: z.string().nullish()
+        }))
+
+        .query(async ({ ctx, input }) => {
+            const { search, page, pageSize } = input //destructuring our input
+
+            /*
+            This query fetches a paginated list of agents created by the currently logged-in user. It includes the following logic:
+
+            Filters:
+
+            Only agents where userId matches the current user's ID (ctx.auth.user.id).
+
+            If a search term is provided, it filters agents whose name contains the search text (ilike for case-insensitive partial match).
+
+            Sorting:
+
+            Agents are ordered by createdAt in descending order (newest first).
+
+            If multiple agents have the same createdAt, they are further sorted by id in descending order.
+
+            Pagination:
+
+            Returns only a limited number of results per page using .limit(pageSize).
+
+            Skips records from previous pages using .offset((page - 1) * pageSize).
+
+            This ensures the user sees their own agents, optionally filtered by name, in reverse chronological order, with pagination applied.
+            */
+            const data = await db
+                .select()
+                .from(agents)
+                .where(
+                    and(
+                        eq(agents.userId, ctx.auth.user.id), //To get only the agents which the user created 
+                        search ? ilike(agents.name, `%${search}%`) : undefined  //This is like a search freature which user will use to find his agents , he will know his agents name
+                    )
+                )
+                .orderBy(desc(agents.createdAt), desc(agents.id))
+                .limit(pageSize) //for pagination
+                .offset((page - 1) * pageSize) //for pagination
 
 
-        return data;
-    }),
+            // This code gives you the total count of agents created by the user where the agent's name matches the search text (case-insensitively).
+            const [total] = await db
+                .select({ count: count() })
+                .from(agents)
+                .where(
+                    and(
+                        eq(agents.userId, ctx.auth.user.id), //To get only the agents which the user created 
+                        search ? ilike(agents.name, `%${search}%`) : undefined  //This is like a search freature which user will use to find his agents , he will know his agents name
+                    )
+                )
+
+            const totalPages = Math.ceil(total.count / pageSize)
+
+
+            return {
+                items: data,
+                total : total.count,
+                totalPages
+            };
+        }),
 
     //Procedure 2
     //this is for getting the agent when its id is given
     getOne: protectedProcedure
-    .input(z.object({id : z.string()}))
-    .query(async ({input}) => {
-        const [existingAgent] = await db
-            .select()
-            .from(agents)
-            .where(eq(agents.id , input.id))
+        .input(z.object({ id: z.string() }))
+
+        .query(async ({ input }) => {
+            const [existingAgent] = await db
+                .select()
+                .from(agents)
+                .where(eq(agents.id, input.id))
 
 
-        return existingAgent;
-    }),
+            return existingAgent;
+        }),
 
     //Procedure 3
     // This Procedure is for inserting new agent in the database
@@ -51,7 +113,7 @@ export const agentsRouter = createTRPCRouter({
                 .values(
                     {
                         ...input,
-                        userId: ctx.auth.user.id
+                        userId: ctx.auth.user.id  //When we are creating an agent userid of agent is set to be userid of user which created agent
                     }
                 )
                 .returning()
