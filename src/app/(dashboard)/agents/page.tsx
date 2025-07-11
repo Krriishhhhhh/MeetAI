@@ -30,18 +30,14 @@ const Page = async ({searchParams}:Props) => {
       {
         headers : await headers(),
       }
-    )
-    
+    ) 
     //If there is no session then we get redirect to sign in page
     if(!session){
       redirect('/sign-in')
     }
 
     // We are fecthing the data in the server component , thus data will already be fetched and then we will render client componenet
-
-    
     const filters = await loadSearchParams(searchParams) //To get search and page from the url 
-    
     const queryClient = getQueryClient();
     void queryClient.prefetchQuery(trpc.agents.getMany.queryOptions({
      ...filters //passing search and page as an input to get the desired output
