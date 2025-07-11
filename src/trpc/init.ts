@@ -1,4 +1,6 @@
-import { initTRPC } from '@trpc/server';
+import { auth } from '@/lib/auth';
+import { initTRPC, TRPCError } from '@trpc/server';
+import { headers } from 'next/headers';
 import { cache } from 'react';
 export const createTRPCContext = cache(async () => {
   /**
@@ -20,3 +22,19 @@ const t = initTRPC.create({
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 export const baseProcedure = t.procedure;
+export const protectedProcedure =  baseProcedure.use(async({ctx , next})=>{
+
+  // In protecProcedures , all the below code will run as a middleware , thus it will run first , and if passed , we will also have access to user data as we are returning the session
+
+  const session = await auth.api.getSession(
+    {
+      headers : await headers(),
+    }
+  )
+
+  if(!session){
+    throw new TRPCError({code :"UNAUTHORIZED" , message:"Unauthorised"})
+  }
+
+  return next({ctx : {...ctx , auth: session}})
+})
