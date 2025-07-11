@@ -27,13 +27,33 @@ interface AgentFormProps {
 export const AgentForm = ({ onSuccess, onCancel, initialValues }: AgentFormProps) => {
 
     const trpc = useTRPC();
-
     const queryClient = useQueryClient();
 
 
     // Function to create new Agent 
     const createAgent = useMutation(
         trpc.agents.create.mutationOptions(
+            {
+                // This data might be outdated — please re-fetch it next time it’s needed.This is what happening here 
+                onSuccess: async () => {
+                    await queryClient.invalidateQueries(
+                        trpc.agents.getMany.queryOptions({})
+                    )
+
+
+                    onSuccess?.()
+                },
+
+                onError: (error) => {
+                    toast.error(error.message)
+                },
+            }
+        )
+    )
+
+    // Function to update Agent 
+    const updateAgent = useMutation(
+        trpc.agents.update.mutationOptions(
             {
                 // This data might be outdated — please re-fetch it next time it’s needed.This is what happening here 
                 onSuccess: async () => {
@@ -58,6 +78,9 @@ export const AgentForm = ({ onSuccess, onCancel, initialValues }: AgentFormProps
         )
     )
 
+
+
+
     // This is the form 
     const form = useForm<z.infer<typeof agentsInsertSchema>>({
         resolver: zodResolver(agentsInsertSchema),
@@ -70,12 +93,12 @@ export const AgentForm = ({ onSuccess, onCancel, initialValues }: AgentFormProps
     // This form is used to edit an exisiting agent and also create a new agent / So we need to deteemine which scenario is this
     // isEdit-->false ? we are creating a new agent not editing
     const isEdit = !!initialValues?.id
-    const isPending = createAgent.isPending
+    const isPending = createAgent.isPending || updateAgent.isPending
 
     // when we submit , if we are editing then editing will happen , but it will have its own logic , and ifwe are creating a agent then that will happen , which has its own logic
     const onSubmit = (values: z.infer<typeof agentsInsertSchema>) => {
         if (isEdit) {
-            console.log("TODO updateAgent")
+            updateAgent.mutate({ ...values, id: initialValues.id })
         } else {
             createAgent.mutate(values)
         }
