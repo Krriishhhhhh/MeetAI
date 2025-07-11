@@ -6,3 +6,8 @@ export const agentsInsertSchema = z.object({
     instructions : z.string().min(1 , {message : "Instructions are required"}),
     
 })
+
+// This is the schema of inputs when we are gonna update the agent
+export const agentsUpdateSchema = agentsInsertSchema.extend({
+    id : z.string().min(1 , {message : " Id is required"})
+})

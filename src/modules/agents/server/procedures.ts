@@ -1,7 +1,7 @@
 import { db } from "@/db"
 import { agents } from "@/db/schema"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
-import { agentsInsertSchema } from "../schemas"
+import { agentsInsertSchema, agentsUpdateSchema } from "../schemas"
 import { z } from "zod"
 import { and, count, desc, eq, ilike } from "drizzle-orm"
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from "@/constants"
@@ -103,10 +103,10 @@ export const agentsRouter = createTRPCRouter({
                     )
                 )
 
-                if(!existingAgent){
-                    throw new TRPCError({code : "NOT_FOUND" , message:"Agent not found"})
-                }
-                
+            if (!existingAgent) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Agent not found" })
+            }
+
 
 
             return existingAgent;
@@ -131,7 +131,51 @@ export const agentsRouter = createTRPCRouter({
                 .returning()
 
             return createdAgent;
-        })
+        }),
 
+    //Procedure 4
+    //To remove the agent when id is given 
+    remove: protectedProcedure
+        .input(z.object({ id: z.string() })) //Input is id of the agent which we want to delete
+        .mutation(async ({ input, ctx }) => {
+            const [removedAgent] = await db
+                .delete(agents)
+                .where(
+                    and(
+                        eq(agents.id, input.id), //Matching the input with the actual user id
+                        eq(agents.userId, ctx.auth.user.id) //Checking if this user made this agent
+                    )
+                )
+                .returning()
+
+            if (!removedAgent) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Agent Not Found" })
+            }
+
+            return removedAgent;
+        }),
+
+    // Procedure 5
+    // This is used to update the agent , input is all the details 
+    update: protectedProcedure
+        .input(agentsUpdateSchema)
+        .mutation(async ({ input, ctx }) => {
+            const [updatedAgent] = await db
+                .update(agents)
+                .set(input) //This is what actually updates  , literally overrides the previous written values with the new one 
+                .where(
+                    and(
+                        eq(agents.id, input.id), //Matching the input with the actual user id
+                        eq(agents.userId, ctx.auth.user.id) //Checking if this user made this agent
+                    )
+                )
+                .returning()
+
+            if (!updatedAgent) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Agent Not Found" })
+            }
+
+            return updatedAgent
+        })
 
 })

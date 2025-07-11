@@ -15,6 +15,7 @@ export const AgentIdViewHeader = ({ agentId, agentName, onEdit, onRemove }: Agen
     return (
         <div className="flex items-center justify-between">
 
+            {/* This is the My Agents and Agent Name Text */}
             <Breadcrumb>
                 <BreadcrumbList>
 
@@ -44,6 +45,7 @@ export const AgentIdViewHeader = ({ agentId, agentName, onEdit, onRemove }: Agen
                 </BreadcrumbList>
             </Breadcrumb>
 
+            {/* This is the Drop Down Menu */}
             <DropdownMenu modal={false}>
 
                 {/* This is the trigger of the dropdown menu , those 3 dots  */}
