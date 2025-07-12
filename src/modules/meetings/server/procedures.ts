@@ -100,9 +100,9 @@ export const meetingsRouter = createTRPCRouter({
                 .where(
                     and(
                         eq(meetings.userId, ctx.auth.user.id), //To get only the meetings which the user created 
-                        search ? ilike(meetings.name, `%${search}%`) : undefined , //This is like a search freature which user will use to find his agents 
+                        search ? ilike(meetings.name, `%${search}%`) : undefined, //This is like a search freature which user will use to find his agents 
 
-                         status ? eq(meetings.status, status) : undefined, //if status is defined , then filter meetings based on the desired status
+                        status ? eq(meetings.status, status) : undefined, //if status is defined , then filter meetings based on the desired status
                         agentId ? eq(meetings.agentId, agentId) : undefined, //if status is defined , then filter meetings based on the desired status
                     )
                 )
@@ -124,8 +124,15 @@ export const meetingsRouter = createTRPCRouter({
 
         .query(async ({ input, ctx }) => {
             const [existingMeeting] = await db
-                .select({ ...getTableColumns(meetings) })
+                .select(
+                    {
+                        ...getTableColumns(meetings),
+                        agent: agents,
+                        duration: sql<number>`EXTRACT(EPOCH FROM (ended_at - started_at))`.as("duration")
+
+                    })
                 .from(meetings)
+                .innerJoin(agents, eq(meetings.agentId, agents.id))
                 .where(
                     and(
                         eq(meetings.id, input.id), //Matching inpud id with the actual meeting id
@@ -187,6 +194,29 @@ export const meetingsRouter = createTRPCRouter({
             }
 
             return updatedMeeting
+        }),
+
+
+    // Procedure 5
+    // This is used to remove the meeting , input is all the details 
+    remove: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const [removedMeeting] = await db
+                .delete(meetings)
+                .where(
+                    and(
+                        eq(meetings.id, input.id), //Matching the input with the actual user id
+                        eq(meetings.userId, ctx.auth.user.id) //Checking if this user made this meeting
+                    )
+                )
+                .returning()
+
+            if (!removedMeeting) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Meeting Not Found" })
+            }
+
+            return removedMeeting
         })
 
 
