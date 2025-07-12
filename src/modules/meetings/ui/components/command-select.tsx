@@ -28,6 +28,12 @@ export const CommandSelect = ({
 
     const [open, setOpen] = useState(false); //State to close and open the dialogue
 
+    // To fix a bug
+    const handleOpenChange = (open: boolean) => {
+        onSearch?.("");
+        setOpen(open);
+    }
+
     // We will loop over through all the agents/options and find out which is the current option/agent selected . It might be the case that no value is selected so far
     const selectedOption = options.find((option) => option.value === value)
 
@@ -56,9 +62,9 @@ export const CommandSelect = ({
 
             {/* This is what we see when the dialogue is open */}
             <CommandResponsiveDialog
-            shouldFilter={!onSearch}
+                shouldFilter={!onSearch}
                 open={open}
-                onOpenChange={setOpen}
+                onOpenChange={handleOpenChange}
             >
 
                 {/* This is the search bar */}
