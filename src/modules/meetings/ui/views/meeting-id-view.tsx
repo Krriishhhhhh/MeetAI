@@ -5,17 +5,15 @@
 
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-
-import { GeneratedAvatar } from "@/components/generated-avatar";
-import { Badge } from "@/components/ui/badge";
-import { VideoIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useState } from "react";
-
 import { MeetingIdViewHeader } from "../components/meeting-id-view-header";
 import { UpdateMeetingDialogue } from "../components/update-meetings-dialogue";
+import { UpcomingState } from "../components/upcoming-state";
+import { ActiveState } from "../components/active-state";
+import { CancelledState } from "../components/cancelled-state";
+import { ProcessingState } from "../components/processing-state";
 
 interface MeetingIdViewProps {
     meetingId: string
@@ -64,8 +62,18 @@ export const MeetingIdIdView = ({ meetingId }: MeetingIdViewProps) => {
 
 
     // <--------------------------------Beblow is Update Logic----------------------------------->
-
     const [updateMeetingDialogueOpen, setUpdateMeetingDialogueOpen] = useState(false)
+
+
+
+    
+    // These aare the possible meeting states
+    const isUpcoming = data.status === "upcoming";
+    const isCompleted = data.status === "completed";
+    const isActive = data.status === "active";
+    const isProcessing = data.status === "processing";
+    const isCancelled = data.status === "cancelled";
+
 
     return (
 
@@ -89,6 +97,22 @@ export const MeetingIdIdView = ({ meetingId }: MeetingIdViewProps) => {
                     onEdit={() => { setUpdateMeetingDialogueOpen(true) }}
                     onRemove={handleRemoveMeeting}
                 />
+
+                {/* We check which state the meeting is in and render the component accordingly */}
+
+                {isCompleted && <div>Completed</div>}
+                {isProcessing && <ProcessingState />}
+
+                {isCancelled && <CancelledState />}
+
+                {isActive && <ActiveState meetingId={meetingId} />}
+
+                {isUpcoming && (<UpcomingState
+                    meetingId={meetingId}
+                    onCancelMeeting={() => { }}
+                    isCancelling={false}
+                />)}
+
 
 
 

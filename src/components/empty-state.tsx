@@ -2,12 +2,13 @@ import Image from "next/image"
 
 interface Props {
     title: string,
-    description: string
+    description: string,
+    image?: string
 }
 
 // THIS IS THE EMPTY STATE WHICH WILL BE USER THROUGHOUT THE PROJECT 
 
-export const EmptyState = ({ title, description }: Props) => {
+export const EmptyState = ({ title, description, image = "/empty.svg" }: Props) => {
     return (
         <div className="flex flex-col items-center justify-center ">
 
