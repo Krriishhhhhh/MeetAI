@@ -12,6 +12,8 @@ import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from "@
 import { TRPCError } from "@trpc/server"
 import { meetingsInsertSchema, meetingsUpdateSchema } from "../schemas"
 import { MeetingStatus } from "../types"
+import { streamVideo } from "@/lib/stream-video"
+import { generateAvatarUri } from "@/lib/avatar"
 
 
 
@@ -158,6 +160,7 @@ export const meetingsRouter = createTRPCRouter({
             // const { name, instructions } = input; //This will come from the form inputs 
             // const { auth } = ctx //This is user data which we get when we check the session as this is a protected route
 
+            // We are creating the meeting
             const [createdMeeting] = await db
                 .insert(meetings)
                 .values(
@@ -167,6 +170,57 @@ export const meetingsRouter = createTRPCRouter({
                     }
                 )
                 .returning()
+
+            // Now we wiill initialise a call of type defualt and id of this call would be equivalent to meeting id which makes sense cause every meeting is a call. But this doesnt start the call , it just gives us an abject using which we will start the call 
+            const call = streamVideo.video.call("default", createdMeeting.id);
+
+            // We are creating the video call room on Stream’s backend, and attaching custom metadata to it (like who created it, the meeting ID, and name).
+            await call.create({
+                data: {
+
+                    created_by_id: ctx.auth.user.id,
+
+                    custom: {
+                        meetingId: createdMeeting.id,
+                        meetingName: createdMeeting.name
+                    },
+
+                    settings_override: {
+                        transcription: {
+                            language: "en",
+                            mode: "auto-on",
+                            closed_caption_mode: "auto-on"
+                        },
+                        recording: {
+                            mode: "auto-on",
+                            quality: "1080p"
+                        }
+                    }
+                }
+            })
+
+
+            // After creating the call we need to make sure that our current agent with its latest details is in the Stream Server 
+
+            // We are getting the agent which is associalted in this meeting 
+            const [existingAgent] = await db
+                .select()
+                .from(agents)
+                .where(eq(agents.id, createdMeeting.agentId))
+
+            if (!existingAgent) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Agent Not Found" })
+            }
+
+            // Inserting the agent in the server
+            streamVideo.upsertUsers([
+                {
+                    id: existingAgent.id,
+                    name: existingAgent.name,
+                    role: "user",
+                    image: generateAvatarUri({ seed: existingAgent.name, variant: "botttsNeutral" })
+                }
+            ])
 
             return createdMeeting;
         }),
@@ -217,7 +271,34 @@ export const meetingsRouter = createTRPCRouter({
             }
 
             return removedMeeting
+        }),
+
+    //Procedure 6
+    generateToken: protectedProcedure
+        .mutation(async ({ ctx }) => {
+
+            // We are inserting (or updating) logged-in users into the Stream Video platform, so that they can participate in video calls.
+            // Before any user can join or host a video call using Stream Video, they must be registered on Stream's backend — with an ID, name, role, and optional image.
+            await streamVideo.upsertUsers([
+                {
+                    id: ctx.auth.user.id,
+                    name: ctx.auth.user.name,
+                    role: "admin",
+                    image: ctx.auth.user.image ?? generateAvatarUri({ seed: ctx.auth.user.name, variant: "initials" })
+
+                }
+            ])
+
+            const expirationTime = Math.floor(Date.now() / 1000) + 3600 //1 hour
+            const issuedAt = Math.floor(Date.now() / 1000) - 60
+
+            // Now as the user exists in streamIO , we just need to generate its token 
+            const token = streamVideo.generateUserToken({
+                user_id: ctx.auth.user.id,
+                exp: expirationTime,
+                validity_in_seconds: issuedAt
+            })
+
+            return token;
         })
-
-
 })
