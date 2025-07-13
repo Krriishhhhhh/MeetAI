@@ -39,7 +39,7 @@ const Page = async ({ params }: Props) => {
             <Suspense fallback={<LoadingState title="Loading Meeting" description="This may take a while" />}>
                 <ErrorBoundary fallback={<ErrorState title="Error loading meeting" description="Something went wrong" />}>
 
-                    {/* This is the backbone or the starter of all UI on the agentPage */}
+                    {/* This is the backbone or the starter of all UI on the meetingtPage */}
                     <MeetingIdIdView meetingId={meetingId} />
                 </ErrorBoundary>
             </Suspense>
