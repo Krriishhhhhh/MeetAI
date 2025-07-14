@@ -1,7 +1,8 @@
 import { db } from "@/db";
 import { agents, meetings } from "@/db/schema";
+import { inngest } from "@/inngest/client";
 import { streamVideo } from "@/lib/stream-video";
-import { CallSessionStartedEvent, CallSessionParticipantLeftEvent } from "@stream-io/node-sdk";
+import { CallSessionStartedEvent, CallSessionParticipantLeftEvent, CallEndedEvent, CallTranscriptionReadyEvent, CallRecordingReadyEvent } from "@stream-io/node-sdk";
 import { and, eq, not } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -125,6 +126,87 @@ export async function POST(req: NextRequest) {
         // Ending the call when someone leave the call
         const call = streamVideo.video.call("default", meetingId)
         await call.end()
+    } else if (eventType === "call.session_ended") {
+
+        // We're telling TypeScript to treat this payload as a CallEndedEvent (a type probably provided by Stream's SDK). This gives you access to the right structure and fields.
+        const event = payload as CallEndedEvent
+
+
+        //Getting the meetingId
+        const meetingId = event.call.custom?.meetingId
+        if (!meetingId) {
+            return NextResponse.json({ error: "Missing MeetingId" }, { status: 400 })
+        }
+
+        // Setting the status as processing when the meeting ends
+        await db
+            .update(meetings)
+            .set({
+                status: "processing",
+                endedAt: new Date(),
+            })
+            .where(and(eq(meetings.id, meetingId), eq(meetings.status, "active")))
+
+
+
+
+
+
+    } else if (eventType === "call.transcription_ready") {
+
+        // We're telling TypeScript to treat this payload as a CallTranscriptionReadyEvent (a type probably provided by Stream's SDK). This gives you access to the right structure and fields.
+        const event = payload as CallTranscriptionReadyEvent
+
+        //Getting the meetingId
+        const meetingId = event.call_cid.split(":")[1]
+        if (!meetingId) {
+            return NextResponse.json({ error: "Missing MeetingId" }, { status: 400 })
+        }
+
+        // Here we are putting the transcription of meeting in the data base , and then we are gonna suumarise that transcript and show it to user
+        const [updatedMeeting] = await db
+            .update(meetings)
+            .set({
+                transcriptUrl: event.call_transcription.url
+            })
+            .where(eq(meetings.id, meetingId))
+            .returning();
+
+        if (!updatedMeeting) {
+            return NextResponse.json({ error: "Meeting Not Found" }, { status: 404 })
+        }
+
+        // This will tell inngest to create  a summary
+        await inngest.send({
+            name: "meetings/processing",
+            data: {
+                meetingId: updatedMeeting.id,
+                transcriptUrl: updatedMeeting.transcriptUrl
+            }
+        })
+
+
+    } else if (eventType === "call.recording_ready") {
+
+        // We're telling TypeScript to treat this payload as a CallRecordingReadyEvent (a type probably provided by Stream's SDK). This gives you access to the right structure and fields.
+        const event = payload as CallRecordingReadyEvent
+
+        //Getting the meetingId
+        const meetingId = event.call_cid.split(":")[1]
+        if (!meetingId) {
+            return NextResponse.json({ error: "Missing MeetingId" }, { status: 400 })
+        }
+
+        // Here we are putting the recording of meeting in the data base , and then we are gonna suumarise that transcript and show it to user
+        await db
+            .update(meetings)
+            .set({
+                recordingtUrl: event.call_recording.url
+            })
+            .where(eq(meetings.id, meetingId))
+
+
+
     }
 
     return NextResponse.json({ status: "ok" })

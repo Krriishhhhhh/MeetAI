@@ -11,3 +11,12 @@ export enum MeetingStatus {
     Processing = "processing",
     Cancelled = "cancelled",
 }
+
+// This is what the stream returns in its transcript url
+export type StreamTranscriptMeeting = {
+    speaker_id : string,
+    type: string,
+    text: string,
+    start_ts: string,
+    stop_ts: string,
+}
