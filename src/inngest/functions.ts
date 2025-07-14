@@ -44,19 +44,15 @@ export const meetingsProcessing = inngest.createFunction(
     { event: "meetings/processing" },
     async ({ event, step }) => {
 
-        // // We are fetching the transcript url of the meeting 
-        // const response = await step.run("fetch-transcript", async () => {
-        //     return fetch(event.data.transcriptUrl).then((res) => res.text())
-        // })
-        // const transcript = await step.run("parse-transcript", async () => {
-        //     return JSONL.parse<StreamTranscriptMeeting>(response)
-        // })
-
-        const response = await step.fetch(event.data.transcriptUrl)
-        const transcript = await step.run("parse-transcript", async () => {
-            const text = await response.text()
-            return JSONL.parse<StreamTranscriptMeeting>(text)
+        // We are fetching the transcript url of the meeting 
+        const response = await step.run("fetch-transcript", async () => {
+            return fetch(event.data.transcriptUrl).then((res) => res.text())
         })
+        const transcript = await step.run("parse-transcript", async () => {
+            return JSONL.parse<StreamTranscriptMeeting>(response)
+        })
+
+        
 
         // This enhances the transcript (which only has speaker IDs) by adding speaker names (or other details) from the database — both for users and AI agents.
         const transcriptWithSpeakers = await step.run("add-speakers", async () => {
