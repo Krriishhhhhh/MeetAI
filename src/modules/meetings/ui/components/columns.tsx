@@ -70,7 +70,7 @@ export const columns: ColumnDef<MeetingGetMany[number]>[] = [
                     />
                     {/* This displays the meeting starting time  */}
                     <span className="text-sm text-muted-foreground">
-                        {row.original.startedAt ? format(row.original.startedAt, "MMM D") : ""}
+                        {row.original.startedAt ? format(row.original.startedAt, "MMM d") : ""}
                     </span>
 
                 </div>
