@@ -8,6 +8,7 @@ import { GeneratedAvatar } from "@/components/generated-avatar"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { formatDuration } from "@/lib/utils"
+import { Transcript } from "./transcript"
 
 
 interface Props {
@@ -63,6 +64,10 @@ export const CompletedState = ({ data }: Props) => {
 
                 </div>
 
+                <TabsContent value="transcript">
+<Transcript meetingId={data.id}/>
+                </TabsContent>
+
                 {/* This is the content for recording */}
                 <TabsContent value="recording">
                     <div className="bg-white rounded-lg border px-4 py-5">
@@ -74,6 +79,7 @@ export const CompletedState = ({ data }: Props) => {
                     </div>
                 </TabsContent>
 
+                {/* This is the content for summary */}
                 <TabsContent value="summary">
                     <div className="bg-white rounded-lg border">
                         <div className="px-4 py-5 gap-y-5 flex flex-col col-span-5">
